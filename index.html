@@ -1,169 +1,141 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hand Tracking Test</title>
+  <title>Cursed Technique System</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+      color: white;
+      font-family: monospace;
+    }
 
-    <style>
-        body {
-            margin: 0;
-            display: flex;
-            height: 100vh;
-            background: black;
-            color: white;
-            font-family: Arial;
-        }
+    #video {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      width: 300px;
+      border-radius: 10px;
+      transform: scaleX(-1);
+    }
 
-        .left {
-            flex: 2;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 2rem;
-            text-align: center;
-        }
+    #technique {
+      position: absolute;
+      top: 40%;
+      width: 100%;
+      text-align: center;
+      font-size: 60px;
+      letter-spacing: 8px;
+      opacity: 0;
+      transition: 0.3s;
+    }
 
-        .right {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-left: 2px solid red;
-        }
+    .active {
+      opacity: 1;
+    }
 
-        .camera-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-        }
+    .red {
+      color: #ff3c3c;
+      text-shadow: 0 0 20px red;
+    }
 
-        video {
-            width: 100%;
-            transform: scaleX(-1); /* mirror effect */
-        }
+    .purple {
+      color: #a855f7;
+      text-shadow: 0 0 25px purple;
+    }
 
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            pointer-events: none;
-        }
-    </style>
+    .blue {
+      color: #3b82f6;
+      text-shadow: 0 0 25px cyan;
+    }
+  </style>
 </head>
-
 <body>
 
-<div class="left" id="status">
-    Show Your Hands
-</div>
-
-<div class="right">
-    <div class="camera-wrapper">
-        <video id="video" autoplay playsinline></video>
-        <canvas id="canvas"></canvas>
-    </div>
-</div>
+<video id="video" autoplay playsinline></video>
+<div id="technique"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
 <script>
-
 const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const statusText = document.getElementById("status");
+const techniqueText = document.getElementById("technique");
+
+function showTechnique(name, colorClass) {
+  techniqueText.className = "";
+  techniqueText.classList.add("active");
+  techniqueText.classList.add(colorClass);
+  techniqueText.innerText = name;
+
+  setTimeout(() => {
+    techniqueText.className = "";
+  }, 2000);
+}
 
 const hands = new Hands({
-    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  locateFile: (file) => {
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+  }
 });
 
 hands.setOptions({
-    maxNumHands: 2,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.7,
-    minTrackingConfidence: 0.7
+  maxNumHands: 1,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
 });
 
-/* Resize canvas when video loads */
-video.addEventListener("loadeddata", () => {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-});
-
-/* When MediaPipe returns results */
 hands.onResults(results => {
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    /* Draw video frame */
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const count = results.multiHandLandmarks.length;
-
-    if (count === 0) {
-        statusText.innerText = "No hands detected";
-    }
-    else if (count === 1) {
-        statusText.innerText = "1 hand detected";
-    }
-    else {
-        statusText.innerText = "2 hands detected";
-    }
-
-    /* Draw red landmark dots */
-    results.multiHandLandmarks.forEach(landmarks => {
-
-        landmarks.forEach(point => {
-            ctx.beginPath();
-            ctx.arc(
-                point.x * canvas.width,
-                point.y * canvas.height,
-                5,
-                0,
-                2 * Math.PI
-            );
-            ctx.fillStyle = "red";
-            ctx.fill();
-        });
-
-    });
-    if (isRightHandTechnique(results)) {
-    statusText.innerText = "TECHNIQUE ACTIVATED";
-    statusText.style.color = "red";
-    }
-
-
+  if (results.multiHandLandmarks.length > 0) {
+    const landmarks = results.multiHandLandmarks[0];
+    detectGesture(landmarks);
+  }
 });
 
-/* Start camera */
 const camera = new Camera(video, {
-    onFrame: async () => {
-        await hands.send({ image: video });
-    },
-    width: 640,
-    height: 480
+  onFrame: async () => {
+    await hands.send({ image: video });
+  },
+  width: 640,
+  height: 480
 });
-
 camera.start();
 
-function isRightHandTechnique(results) {
+function detectGesture(lm) {
+  const thumbTip = lm[4];
+  const indexTip = lm[8];
+  const middleTip = lm[12];
+  const ringTip = lm[16];
+  const pinkyTip = lm[20];
 
-    if (results.multiHandLandmarks.length !== 1) return false;
+  const wrist = lm[0];
 
-    const handedness = results.multiHandedness[0].label;
-    if (handedness !== "Right") return false;
+  // Finger up detection
+  const indexUp = indexTip.y < lm[6].y;
+  const middleUp = middleTip.y < lm[10].y;
+  const ringUp = ringTip.y < lm[14].y;
+  const pinkyUp = pinkyTip.y < lm[18].y;
+  const thumbUp = thumbTip.x < lm[3].x;
 
-    const landmarks = results.multiHandLandmarks[0];
+  // 🔥 GESTURE MAPPINGS
 
-    const indexUp = landmarks[8].y < landmarks[6].y;
-    const middleUp = landmarks[12].y < landmarks[10].y;
-    const ringDown = landmarks[16].y > landmarks[14].y;
-    const pinkyDown = landmarks[20].y > landmarks[18].y;
+  // Gojo (Index + Middle up only)
+  if (indexUp && middleUp && !ringUp && !pinkyUp) {
+    showTechnique("UNLIMITED VOID", "purple");
+  }
 
-    return indexUp && middleUp && ringDown && pinkyDown;
+  // Sukuna (All fingers up)
+  else if (indexUp && middleUp && ringUp && pinkyUp) {
+    showTechnique("DISMANTLE", "red");
+  }
+
+  // Hollow Purple (Index only)
+  else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+    showTechnique("HOLLOW PURPLE", "blue");
+  }
 }
-
 </script>
 
 </body>

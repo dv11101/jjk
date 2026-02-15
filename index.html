@@ -1,6 +1,39 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Domain Expansion</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: black;
+            color: white;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial;
+        }
+
+        h1 {
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        h1:hover {
+            color: crimson;
+            text-shadow: 0 0 20px crimson;
+        }
+    </style>
+</head>
 <body>
-<h1>Hello Domain Expansion</h1>
+
+    <h1 onclick="expand()">CLICK TO EXPAND DOMAIN</h1>
+
+    <script>
+        function expand() {
+            document.body.style.backgroundColor = "darkred";
+        }
+    </script>
+
 </body>
 </html>

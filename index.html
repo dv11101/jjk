@@ -1,142 +1,213 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hand Sign Domain</title>
+  <title>JJK Domain Expansion</title>
 
-    <style>
-        body {
-            margin: 0;
-            background: black;
-            color: white;
-            font-family: Arial, sans-serif;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
 
-        /* LEFT SIDE - MAIN DOMAIN */
-        .main {
-            flex: 3;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            text-align: center;
-            transition: 1s;
-        }
+    /* MAIN AREA */
+    .main {
+      flex: 3;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      text-align: center;
+      transition: 0.6s ease;
+    }
 
-        .title {
-            font-size: 2.5rem;
-            transition: 0.5s;
-        }
+    .title {
+      font-size: 2.5rem;
+      transition: 0.3s;
+    }
 
-        /* RIGHT SIDE - CAMERA */
-        .camera-container {
-            flex: 1;
-            background: #111;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-left: 2px solid crimson;
-        }
+    /* CAMERA SIDE */
+    .camera-container {
+      flex: 1;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-left: 2px solid crimson;
+    }
 
-        video {
-            width: 90%;
-            border: 2px solid crimson;
-            border-radius: 10px;
-        }
+    video {
+      width: 90%;
+      border: 2px solid crimson;
+      border-radius: 10px;
+    }
 
-        @keyframes pulse {
-            0% { text-shadow: 0 0 10px crimson; }
-            50% { text-shadow: 0 0 40px crimson; }
-            100% { text-shadow: 0 0 10px crimson; }
-        }
+    @keyframes pulse {
+      0% { text-shadow: 0 0 10px crimson; }
+      50% { text-shadow: 0 0 40px crimson; }
+      100% { text-shadow: 0 0 10px crimson; }
+    }
 
-        .active {
-            background: darkred;
-        }
+    .active {
+      background: darkred;
+    }
 
-        .active .title {
-            color: crimson;
-            animation: pulse 1s infinite;
-        }
+    .active .title {
+      color: crimson;
+      animation: pulse 1s infinite;
+    }
 
-    </style>
+  </style>
 </head>
 
 <body>
 
-    <div class="main" id="mainArea">
-        <div class="title" id="status">Show Your Domain Sign</div>
-    </div>
+  <div class="main" id="mainArea">
+    <div class="title" id="status">Form Your Hand Sign</div>
+  </div>
 
-    <div class="camera-container">
-        <video id="video" autoplay playsinline></video>
-    </div>
+  <div class="camera-container">
+    <video id="video" autoplay playsinline></video>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
-    <script>
+  <script>
 
-        const video = document.getElementById("video");
-        const mainArea = document.getElementById("mainArea");
-        const statusText = document.getElementById("status");
+    const video = document.getElementById("video");
+    const mainArea = document.getElementById("mainArea");
+    const statusText = document.getElementById("status");
 
-        const hands = new Hands({
-            locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
+    let currentGesture = null;
+    let stableFrames = 0;
+    const STABILITY_THRESHOLD = 8;
 
-        hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.7,
-            minTrackingConfidence: 0.7
-        });
+    const hands = new Hands({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
 
-        hands.onResults(results => {
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
+    });
 
-            if (results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0];
-                detectGesture(landmarks);
-            } else {
-                resetState();
-            }
-        });
+    hands.onResults(results => {
+      detectGesture(results);
+    });
 
-        const camera = new Camera(video, {
-            onFrame: async () => {
-                await hands.send({ image: video });
-            },
-            width: 640,
-            height: 480
-        });
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await hands.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
 
-        camera.start();
+    camera.start();
 
-        function detectGesture(landmarks) {
+    function detectGesture(results) {
 
-            const indexTip = landmarks[8];
-            const indexBase = landmarks[6];
+      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        updateGesture(null);
+        return;
+      }
 
-            if (indexTip.y < indexBase.y) {
-                activateDomain();
-            } else {
-                resetState();
-            }
+      const handsLandmarks = results.multiHandLandmarks;
+      const handedness = results.multiHandedness;
+
+      // --- CASE 1: Single Right Hand (Gojo Style) ---
+      if (handsLandmarks.length === 1 && handedness[0].label === "Right") {
+
+        const lm = handsLandmarks[0];
+
+        const indexUp = lm[8].y < lm[6].y;
+        const middleUp = lm[12].y < lm[10].y;
+        const ringDown = lm[16].y > lm[14].y;
+        const pinkyDown = lm[20].y > lm[18].y;
+
+        if (indexUp && middleUp && ringDown && pinkyDown) {
+          updateGesture("GOJO");
+          return;
+        }
+      }
+
+      // --- CASE 2: Two Hand Domain ---
+      if (handsLandmarks.length === 2) {
+
+        let leftHand = null;
+        let rightHand = null;
+
+        for (let i = 0; i < handedness.length; i++) {
+          if (handedness[i].label === "Left") {
+            leftHand = handsLandmarks[i];
+          } else {
+            rightHand = handsLandmarks[i];
+          }
         }
 
-        function activateDomain() {
-            statusText.innerText = "DOMAIN EXPANSION";
-            mainArea.classList.add("active");
-        }
+        if (leftHand && rightHand) {
 
-        function resetState() {
-            statusText.innerText = "Show Your Domain Sign";
-            mainArea.classList.remove("active");
-        }
+          const leftIndexUp = leftHand[8].y < leftHand[6].y;
+          const rightIndexUp = rightHand[8].y < rightHand[6].y;
 
-    </script>
+          const leftMiddleUp = leftHand[12].y < leftHand[10].y;
+          const rightMiddleUp = rightHand[12].y < rightHand[10].y;
+
+          if (leftIndexUp && rightIndexUp && leftMiddleUp && rightMiddleUp) {
+            updateGesture("DOMAIN");
+            return;
+          }
+        }
+      }
+
+      updateGesture(null);
+    }
+
+    function updateGesture(newGesture) {
+
+      if (newGesture === currentGesture) {
+        stableFrames++;
+      } else {
+        currentGesture = newGesture;
+        stableFrames = 1;
+      }
+
+      if (stableFrames >= STABILITY_THRESHOLD) {
+
+        if (currentGesture === "GOJO") {
+          activateGojo();
+        } else if (currentGesture === "DOMAIN") {
+          activateDomain();
+        } else {
+          resetState();
+        }
+      }
+    }
+
+    function activateGojo() {
+      statusText.innerText = "INFINITE VOID";
+      mainArea.classList.add("active");
+    }
+
+    function activateDomain() {
+      statusText.innerText = "DOMAIN EXPANSION";
+      mainArea.classList.add("active");
+    }
+
+    function resetState() {
+      statusText.innerText = "Form Your Hand Sign";
+      mainArea.classList.remove("active");
+    }
+
+  </script>
 
 </body>
 </html>

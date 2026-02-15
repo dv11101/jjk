@@ -128,6 +128,11 @@ hands.onResults(results => {
         });
 
     });
+    if (isRightHandTechnique(results)) {
+    statusText.innerText = "TECHNIQUE ACTIVATED";
+    statusText.style.color = "red";
+    }
+
 
 });
 
@@ -141,6 +146,23 @@ const camera = new Camera(video, {
 });
 
 camera.start();
+
+function isRightHandTechnique(results) {
+
+    if (results.multiHandLandmarks.length !== 1) return false;
+
+    const handedness = results.multiHandedness[0].label;
+    if (handedness !== "Right") return false;
+
+    const landmarks = results.multiHandLandmarks[0];
+
+    const indexUp = landmarks[8].y < landmarks[6].y;
+    const middleUp = landmarks[12].y < landmarks[10].y;
+    const ringDown = landmarks[16].y > landmarks[14].y;
+    const pinkyDown = landmarks[20].y > landmarks[18].y;
+
+    return indexUp && middleUp && ringDown && pinkyDown;
+}
 
 </script>
 

@@ -41,13 +41,22 @@
 </div>
 
 <div class="right">
-    <video id="video" autoplay playsinline></video>
+    <div style="position: relative;">
+        <video id="video" autoplay playsinline style="position:absolute;"></video>
+        <canvas id="canvas" style="position:absolute;"></canvas>
+    </div>
 </div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
 <script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 640;
+canvas.height = 480;
 
 const video = document.getElementById("video");
 const statusText = document.getElementById("status");
@@ -64,16 +73,24 @@ hands.setOptions({
 });
 
 hands.onResults(results => {
-    const count = results.multiHandLandmarks.length;
 
-    if (count === 0) {
-        statusText.innerText = "No hands detected";
-    }
-    else if (count === 1) {
-        statusText.innerText = "1 hand detected";
-    }
-    else {
-        statusText.innerText = "2 hands detected";
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    if (results.multiHandLandmarks.length > 0) {
+
+        results.multiHandLandmarks.forEach(landmarks => {
+
+            landmarks.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point.x * canvas.width, point.y * canvas.height, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = "red";
+                ctx.fill();
+            });
+
+        });
+
     }
 });
 

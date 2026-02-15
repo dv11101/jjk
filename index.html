@@ -1,38 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Domain Expansion</title>
+    <title>Cursed Technique</title>
+
     <style>
+        /* 1️⃣ Reset default margins */
         body {
             margin: 0;
-            background-color: black;
+            background: black;
             color: white;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: Arial;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            transition: background 1s;
         }
 
-        h1 {
+        /* 2️⃣ Center text styling */
+        .title {
+            font-size: 2rem;
+            text-align: center;
             cursor: pointer;
-            transition: 0.3s;
+            letter-spacing: 2px;
+            transition: 0.4s;
         }
 
-        h1:hover {
+        /* 3️⃣ Glow effect on hover */
+        .title:hover {
             color: crimson;
             text-shadow: 0 0 20px crimson;
         }
+
+        /* 4️⃣ Flash animation */
+        @keyframes flash {
+            0% { background: black; }
+            50% { background: darkred; }
+            100% { background: black; }
+        }
+
+        .flash {
+            animation: flash 0.2s infinite;
+        }
+
+        /* 5️⃣ Screen shake */
+        @keyframes shake {
+            0% { transform: translate(0px, 0px); }
+            25% { transform: translate(5px, -5px); }
+            50% { transform: translate(-5px, 5px); }
+            75% { transform: translate(5px, 5px); }
+            100% { transform: translate(0px, 0px); }
+        }
+
+        .shake {
+            animation: shake 0.2s infinite;
+        }
+
     </style>
 </head>
+
 <body>
 
-    <h1 onclick="expand()">CLICK TO EXPAND DOMAIN</h1>
+    <div class="title" onclick="activate()">
+        CLICK TO INITIALIZE CURSED TECHNIQUE
+    </div>
+
+    <audio id="sound" src="sound.mp3"></audio>
 
     <script>
-        function expand() {
-            document.body.style.backgroundColor = "darkred";
+
+        function activate() {
+            document.body.classList.add("flash");
+            document.body.classList.add("shake");
+
+            let audio = document.getElementById("sound");
+            audio.play();
+
+            setTimeout(() => {
+                document.body.classList.remove("flash");
+                document.body.classList.remove("shake");
+                document.body.style.background = "darkred";
+            }, 3000);
         }
+
     </script>
 
 </body>

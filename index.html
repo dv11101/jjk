@@ -1,213 +1,93 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>JJK Domain Expansion</title>
+    <title>Hand Test</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background: black;
+            color: white;
+            font-family: Arial;
+        }
 
-  <style>
-    body {
-      margin: 0;
-      background: black;
-      color: white;
-      font-family: Arial, sans-serif;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
+        .left {
+            flex: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+        }
 
-    /* MAIN AREA */
-    .main {
-      flex: 3;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      text-align: center;
-      transition: 0.6s ease;
-    }
+        .right {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-left: 2px solid red;
+        }
 
-    .title {
-      font-size: 2.5rem;
-      transition: 0.3s;
-    }
-
-    /* CAMERA SIDE */
-    .camera-container {
-      flex: 1;
-      background: #111;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border-left: 2px solid crimson;
-    }
-
-    video {
-      width: 90%;
-      border: 2px solid crimson;
-      border-radius: 10px;
-    }
-
-    @keyframes pulse {
-      0% { text-shadow: 0 0 10px crimson; }
-      50% { text-shadow: 0 0 40px crimson; }
-      100% { text-shadow: 0 0 10px crimson; }
-    }
-
-    .active {
-      background: darkred;
-    }
-
-    .active .title {
-      color: crimson;
-      animation: pulse 1s infinite;
-    }
-
-  </style>
+        video {
+            width: 90%;
+        }
+    </style>
 </head>
 
 <body>
 
-  <div class="main" id="mainArea">
-    <div class="title" id="status">Form Your Hand Sign</div>
-  </div>
+<div class="left" id="status">
+    Show Your Hands
+</div>
 
-  <div class="camera-container">
+<div class="right">
     <video id="video" autoplay playsinline></video>
-  </div>
+</div>
 
-  <!-- MediaPipe -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
-  <script>
+<script>
 
-    const video = document.getElementById("video");
-    const mainArea = document.getElementById("mainArea");
-    const statusText = document.getElementById("status");
+const video = document.getElementById("video");
+const statusText = document.getElementById("status");
 
-    let currentGesture = null;
-    let stableFrames = 0;
-    const STABILITY_THRESHOLD = 8;
+const hands = new Hands({
+    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
 
-    const hands = new Hands({
-      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
+hands.setOptions({
+    maxNumHands: 2,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.7
+});
 
-    hands.setOptions({
-      maxNumHands: 2,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
-    });
+hands.onResults(results => {
+    const count = results.multiHandLandmarks.length;
 
-    hands.onResults(results => {
-      detectGesture(results);
-    });
+    if (count === 0) {
+        statusText.innerText = "No hands detected";
+    }
+    else if (count === 1) {
+        statusText.innerText = "1 hand detected";
+    }
+    else {
+        statusText.innerText = "2 hands detected";
+    }
+});
 
-    const camera = new Camera(video, {
-      onFrame: async () => {
+const camera = new Camera(video, {
+    onFrame: async () => {
         await hands.send({ image: video });
-      },
-      width: 640,
-      height: 480
-    });
+    },
+    width: 640,
+    height: 480
+});
 
-    camera.start();
+camera.start();
 
-    function detectGesture(results) {
-
-      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-        updateGesture(null);
-        return;
-      }
-
-      const handsLandmarks = results.multiHandLandmarks;
-      const handedness = results.multiHandedness;
-
-      // --- CASE 1: Single Right Hand (Gojo Style) ---
-      if (handsLandmarks.length === 1 && handedness[0].label === "Right") {
-
-        const lm = handsLandmarks[0];
-
-        const indexUp = lm[8].y < lm[6].y;
-        const middleUp = lm[12].y < lm[10].y;
-        const ringDown = lm[16].y > lm[14].y;
-        const pinkyDown = lm[20].y > lm[18].y;
-
-        if (indexUp && middleUp && ringDown && pinkyDown) {
-          updateGesture("GOJO");
-          return;
-        }
-      }
-
-      // --- CASE 2: Two Hand Domain ---
-      if (handsLandmarks.length === 2) {
-
-        let leftHand = null;
-        let rightHand = null;
-
-        for (let i = 0; i < handedness.length; i++) {
-          if (handedness[i].label === "Left") {
-            leftHand = handsLandmarks[i];
-          } else {
-            rightHand = handsLandmarks[i];
-          }
-        }
-
-        if (leftHand && rightHand) {
-
-          const leftIndexUp = leftHand[8].y < leftHand[6].y;
-          const rightIndexUp = rightHand[8].y < rightHand[6].y;
-
-          const leftMiddleUp = leftHand[12].y < leftHand[10].y;
-          const rightMiddleUp = rightHand[12].y < rightHand[10].y;
-
-          if (leftIndexUp && rightIndexUp && leftMiddleUp && rightMiddleUp) {
-            updateGesture("DOMAIN");
-            return;
-          }
-        }
-      }
-
-      updateGesture(null);
-    }
-
-    function updateGesture(newGesture) {
-
-      if (newGesture === currentGesture) {
-        stableFrames++;
-      } else {
-        currentGesture = newGesture;
-        stableFrames = 1;
-      }
-
-      if (stableFrames >= STABILITY_THRESHOLD) {
-
-        if (currentGesture === "GOJO") {
-          activateGojo();
-        } else if (currentGesture === "DOMAIN") {
-          activateDomain();
-        } else {
-          resetState();
-        }
-      }
-    }
-
-    function activateGojo() {
-      statusText.innerText = "INFINITE VOID";
-      mainArea.classList.add("active");
-    }
-
-    function activateDomain() {
-      statusText.innerText = "DOMAIN EXPANSION";
-      mainArea.classList.add("active");
-    }
-
-    function resetState() {
-      statusText.innerText = "Form Your Hand Sign";
-      mainArea.classList.remove("active");
-    }
-
-  </script>
+</script>
 
 </body>
 </html>

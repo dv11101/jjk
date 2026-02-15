@@ -102,6 +102,10 @@ hands.onResults(results => {
         resetState();
         return;
     }
+    if (results.multiHandedness.length > 0) {
+    console.log(results.multiHandedness[0].label);
+}
+
 
     const landmarks = results.multiHandLandmarks[0];
     const handedness = results.multiHandedness[0].label;

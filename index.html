@@ -4,10 +4,9 @@
   <meta charset="utf-8">
 
   <!-- MediaPipe CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
   <style>
     body {
@@ -29,72 +28,104 @@
     }
 
     video {
-      transform: scaleX(-1); /* Mirror */
-    }
-
-    canvas {
+      transform: scaleX(-1); /* Mirror camera */
     }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <video class="input_video" autoplay playsinline></video>
+    <video class="input_video" autoplay playsinline muted></video>
     <canvas class="output_canvas"></canvas>
   </div>
 
   <script>
-    function onResults(results) {
-  canvasCtx.save();
-  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+    window.onload = function () {
 
-  canvasCtx.drawImage(
-    results.image,
-    0, 0,
-    canvasElement.width,
-    canvasElement.height
-  );
+      const videoElement = document.querySelector('.input_video');
+      const canvasElement = document.querySelector('.output_canvas');
+      const canvasCtx = canvasElement.getContext('2d');
 
-  let displayCount = 0; // define outside loop
+      canvasElement.width = 1280;
+      canvasElement.height = 720;
 
-  if (results.multiHandLandmarks) {
-    for (const landmarks of results.multiHandLandmarks) {
+      function onResults(results) {
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-      let fingers = [];
+        canvasCtx.drawImage(
+          results.image,
+          0, 0,
+          canvasElement.width,
+          canvasElement.height
+        );
 
-      // Thumb
-      fingers.push(landmarks[4].x < landmarks[3].x ? 1 : 0);
+        let displayCount = 0;
 
-      // Index
-      fingers.push(landmarks[8].y < landmarks[6].y ? 1 : 0);
+        if (results.multiHandLandmarks) {
+          for (const landmarks of results.multiHandLandmarks) {
 
-      // Middle
-      fingers.push(landmarks[12].y < landmarks[10].y ? 1 : 0);
+            let fingers = [];
 
-      // Ring
-      fingers.push(landmarks[16].y < landmarks[14].y ? 1 : 0);
+            // Thumb (basic logic for mirrored camera)
+            fingers.push(landmarks[4].x < landmarks[3].x ? 1 : 0);
 
-      // Pinky
-      fingers.push(landmarks[20].y < landmarks[18].y ? 1 : 0);
+            // Index
+            fingers.push(landmarks[8].y < landmarks[6].y ? 1 : 0);
 
-      let count = fingers.reduce((a, b) => a + b, 0);
-      displayCount = count; // store latest count
+            // Middle
+            fingers.push(landmarks[12].y < landmarks[10].y ? 1 : 0);
 
-      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
-        { color: '#00FF00', lineWidth: 4 });
+            // Ring
+            fingers.push(landmarks[16].y < landmarks[14].y ? 1 : 0);
 
-      drawLandmarks(canvasCtx, landmarks,
-        { color: '#FF0000', lineWidth: 2 });
-    }
-  }
+            // Pinky
+            fingers.push(landmarks[20].y < landmarks[18].y ? 1 : 0);
 
-  canvasCtx.font = "40px Arial";
-  canvasCtx.fillStyle = "yellow";
-  canvasCtx.fillText("Fingers: " + displayCount, 50, 100);
+            let count = fingers.reduce((a, b) => a + b, 0);
+            displayCount = count;
 
-  canvasCtx.restore();
-}
+            // Draw skeleton
+            drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+              { color: '#00FF00', lineWidth: 4 });
 
+            drawLandmarks(canvasCtx, landmarks,
+              { color: '#FF0000', lineWidth: 2 });
+          }
+        }
+
+        // Display finger count
+        canvasCtx.font = "40px Arial";
+        canvasCtx.fillStyle = "yellow";
+        canvasCtx.fillText("Fingers: " + displayCount, 50, 100);
+
+        canvasCtx.restore();
+      }
+
+      const hands = new Hands({
+        locateFile: (file) =>
+          `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7
+      });
+
+      hands.onResults(onResults);
+
+      const camera = new Camera(videoElement, {
+        onFrame: async () => {
+          await hands.send({ image: videoElement });
+        },
+        width: 1280,
+        height: 720
+      });
+
+      camera.start();
+    };
   </script>
 </body>
 </html>

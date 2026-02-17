@@ -64,6 +64,37 @@
           canvasElement.width,
           canvasElement.height
         );
+        for (const landmarks of results.multiHandLandmarks) {
+
+  let fingers = [];
+
+  // Thumb
+  if (landmarks[4].x < landmarks[3].x) {
+    fingers.push(1);
+  } else {
+    fingers.push(0);
+  }
+
+  // Index
+  fingers.push(landmarks[8].y < landmarks[6].y ? 1 : 0);
+
+  // Middle
+  fingers.push(landmarks[12].y < landmarks[10].y ? 1 : 0);
+
+  // Ring
+  fingers.push(landmarks[16].y < landmarks[14].y ? 1 : 0);
+
+  // Pinky
+  fingers.push(landmarks[20].y < landmarks[18].y ? 1 : 0);
+
+  let count = fingers.reduce((a,b)=>a+b,0);
+
+  console.log("Fingers up:", count);
+
+  canvasCtx.font = "40px Arial";
+  canvasCtx.fillStyle = "yellow";
+  canvasCtx.fillText("Fingers: " + count, 50, 100);
+}
 
         if (results.multiHandLandmarks) {
           for (const landmarks of results.multiHandLandmarks) {

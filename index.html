@@ -44,100 +44,57 @@
   </div>
 
   <script>
-    window.onload = function () {
+    function onResults(results) {
+  canvasCtx.save();
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-      const videoElement = document.querySelector('.input_video');
-      const canvasElement = document.querySelector('.output_canvas');
-      const canvasCtx = canvasElement.getContext('2d');
+  canvasCtx.drawImage(
+    results.image,
+    0, 0,
+    canvasElement.width,
+    canvasElement.height
+  );
 
-      canvasElement.width = 1280;
-      canvasElement.height = 720;
+  let displayCount = 0; // define outside loop
 
-      function onResults(results) {
-        canvasCtx.save();
-        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  if (results.multiHandLandmarks) {
+    for (const landmarks of results.multiHandLandmarks) {
 
-        canvasCtx.drawImage(
-          results.image,
-          0, 0,
-          canvasElement.width,
-          canvasElement.height
-        );
-        for (const landmarks of results.multiHandLandmarks) {
+      let fingers = [];
 
-  let fingers = [];
-   
-  // Thumb
-  if (landmarks[4].x < landmarks[3].x) {
-    fingers.push(1);
-  } else {
-    fingers.push(0);
+      // Thumb
+      fingers.push(landmarks[4].x < landmarks[3].x ? 1 : 0);
+
+      // Index
+      fingers.push(landmarks[8].y < landmarks[6].y ? 1 : 0);
+
+      // Middle
+      fingers.push(landmarks[12].y < landmarks[10].y ? 1 : 0);
+
+      // Ring
+      fingers.push(landmarks[16].y < landmarks[14].y ? 1 : 0);
+
+      // Pinky
+      fingers.push(landmarks[20].y < landmarks[18].y ? 1 : 0);
+
+      let count = fingers.reduce((a, b) => a + b, 0);
+      displayCount = count; // store latest count
+
+      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+        { color: '#00FF00', lineWidth: 4 });
+
+      drawLandmarks(canvasCtx, landmarks,
+        { color: '#FF0000', lineWidth: 2 });
+    }
   }
-
-  // Index
-  fingers.push(landmarks[8].y < landmarks[6].y ? 1 : 0);
-
-  // Middle
-  fingers.push(landmarks[12].y < landmarks[10].y ? 1 : 0);
-
-  // Ring
-  fingers.push(landmarks[16].y < landmarks[14].y ? 1 : 0);
-
-  // Pinky
-  fingers.push(landmarks[20].y < landmarks[18].y ? 1 : 0);
-
-  let count = fingers.reduce((a,b)=>a+b,0);
-
-  console.log("Fingers up:", count);
-  if (fingers.toString() === "0,1,1,0,0") {
-  document.getElementById("counter").innerText = "Peace Sign ✌️";
-}
-
 
   canvasCtx.font = "40px Arial";
   canvasCtx.fillStyle = "yellow";
-  canvasCtx.fillText("Fingers: " + count, 50, 100);
+  canvasCtx.fillText("Fingers: " + displayCount, 50, 100);
+
+  canvasCtx.restore();
 }
 
-        if (results.multiHandLandmarks) {
-          for (const landmarks of results.multiHandLandmarks) {
-
-            drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
-              { color: '#00FF00', lineWidth: 4 });
-
-            drawLandmarks(canvasCtx, landmarks,
-              { color: '#FF0000', lineWidth: 2 });
-          }
-        }
-
-        canvasCtx.restore();
-      }
-
-      const hands = new Hands({
-        locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-        }
-      });
-
-      hands.setOptions({
-        maxNumHands: 2,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.7
-      });
-
-      hands.onResults(onResults);
-
-      const camera = new Camera(videoElement, {
-        onFrame: async () => {
-          await hands.send({ image: videoElement });
-        },
-        width: 1280,
-        height: 720
-      });
-
-      camera.start();
-    };
   </script>
 </body>
 </html>
